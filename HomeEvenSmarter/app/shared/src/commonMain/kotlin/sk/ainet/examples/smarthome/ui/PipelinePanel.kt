@@ -48,10 +48,11 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
     val state by vm.pipelineState.collectAsState()
     val engines by vm.engines.collectAsState()
     val log by vm.log.collectAsState()
+    val stages by vm.panelStages.collectAsState()
     Column(modifier) {
         Text("Pipeline", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        StageChips(run)
+        StageChips(run, stages)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Section("Speech", Palette.accent) {
@@ -98,8 +99,9 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
 fun PipelineStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
     val run by vm.run.collectAsState()
     val state by vm.pipelineState.collectAsState()
+    val stages by vm.panelStages.collectAsState()
     Column(modifier.clip(RoundedCornerShape(12.dp)).background(Palette.surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        StageChips(run)
+        StageChips(run, stages)
         val text = if (run.transcript.isNotEmpty()) run.transcript else run.partial
         Text(
             text.ifEmpty { if (state == PipelineState.LISTENING) "listening…" else "hold the button and speak" },
@@ -120,9 +122,9 @@ fun PipelineStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StageChips(run: RunView) {
+private fun StageChips(run: RunView, stages: List<Stage>) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (stage in Stage.entries) {
+        for (stage in stages) {
             val status = run.stages[stage] ?: StageStatus.PENDING
             val target = when (status) {
                 StageStatus.PENDING -> Palette.surfaceHigh
@@ -134,7 +136,7 @@ private fun StageChips(run: RunView) {
             val color by animateColorAsState(target)
             val label = when (stage) { Stage.LISTENING -> "mic"; Stage.ASR -> "ASR"; Stage.NLU -> "NLU"; Stage.ACTION -> "act"; Stage.CLOUD -> "cloud" }
             Box(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(color).padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
-                Text(if (stage == Stage.CLOUD) "$label (next talk)" else label, fontSize = 12.sp, color = if (status == StageStatus.PENDING) Palette.textDim else Palette.background, fontWeight = FontWeight.SemiBold)
+                Text(label, fontSize = 12.sp, color = if (status == StageStatus.PENDING) Palette.textDim else Palette.background, fontWeight = FontWeight.SemiBold)
             }
         }
     }

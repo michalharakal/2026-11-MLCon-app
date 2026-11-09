@@ -37,6 +37,7 @@ import sk.ainet.examples.smarthome.pipeline.PipelineRun
 import sk.ainet.examples.smarthome.pipeline.PipelineState
 import sk.ainet.examples.smarthome.pipeline.Stage
 import sk.ainet.examples.smarthome.pipeline.VoicePipeline
+import sk.ainet.examples.smarthome.pipeline.homeVoice
 import sk.ainet.examples.smarthome.tools.HomeTools
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.TimeSource
@@ -105,6 +106,10 @@ class AppViewModel(val env: AppEnvironment, private val scope: CoroutineScope, v
 
     private val _pipelineState = MutableStateFlow(PipelineState.IDLE)
     val pipelineState: StateFlow<PipelineState> = _pipelineState.asStateFlow()
+
+    private val _panelStages = MutableStateFlow(listOf(Stage.LISTENING, Stage.ASR, Stage.NLU, Stage.ACTION))
+    /** The chips of the pipeline panel, as declared by the running pipeline's spec. */
+    val panelStages: StateFlow<List<Stage>> = _panelStages.asStateFlow()
 
     private val _recentlyChanged = MutableStateFlow<Set<DeviceRef>>(emptySet())
     val recentlyChanged: StateFlow<Set<DeviceRef>> = _recentlyChanged.asStateFlow()
@@ -193,10 +198,14 @@ class AppViewModel(val env: AppEnvironment, private val scope: CoroutineScope, v
         pipelineJob?.cancel()
         // the home commands act locally; remote tools go to the companion middleware
         val router = HomeActions(homeStore).router().register(HomeTools.GET_WEATHER, ::remoteTool)
-        val p = VoicePipeline(asr, n, router)
+        val spec = homeVoice(asr, n, router)
+        val p = VoicePipeline(spec)
         pipeline = p
-        pipelineJob = scope.launch { p.events.collect(::onEvent) }
-        scope.launch { p.state.collect { _pipelineState.value = it } }
+        _panelStages.value = spec.panelStages
+        pipelineJob = scope.launch {
+            launch { p.state.collect { _pipelineState.value = it } }
+            p.events.collect(::onEvent)
+        }
     }
 
     /** Executes a remote tool on the companion server. A dead companion is a failed action, never a crash. */
