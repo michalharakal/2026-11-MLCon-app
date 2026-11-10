@@ -1,4 +1,6 @@
 [versions]
+# SKaiNET for the host-side distillation tool only (tools/distill); the app reaches the runtime through the blueprints.
+skainet = "0.63.0"
 agp = "9.4.1"
 android-compileSdk = "37"
 android-minSdk = "29"
@@ -22,6 +24,10 @@ androidx-test-rules = "1.7.0"
 bouncycastle = "1.85"
 
 [libraries]
+skainet-lang-core = { module = "sk.ainet.core:skainet-lang-core", version.ref = "skainet" }
+skainet-compile-dag = { module = "sk.ainet.core:skainet-compile-dag", version.ref = "skainet" }
+skainet-compile-hlo = { module = "sk.ainet.core:skainet-compile-hlo", version.ref = "skainet" }
+skainet-backend-cpu = { module = "sk.ainet.core:skainet-backend-cpu", version.ref = "skainet" }
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
