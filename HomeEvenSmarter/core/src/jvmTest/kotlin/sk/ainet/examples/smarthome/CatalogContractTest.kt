@@ -7,39 +7,50 @@ import kotlinx.serialization.json.jsonPrimitive
 import sk.ainet.examples.smarthome.tools.HomeTools
 import sk.ainet.examples.smarthome.tools.IntentMapper
 import sk.ainet.examples.smarthome.tools.Mapping
+import sk.ainet.examples.smarthome.tools.toolCatalog
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/** The JSON catalog the NLU cartridge is materialized with is the contract; the Kotlin mirror must not drift. */
+/**
+ * The catalog is code ([HomeTools.catalog]); the JSON the NLU cartridge is materialized with is its rendering.
+ * Descriptions are model input, so the checked-in file must be exactly what the code renders — byte for byte.
+ */
 class CatalogContractTest {
-    private val catalog = Json.parseToJsonElement(File("../cartridges/catalogs/home-tools.v1.json").readText()).jsonObject
+    private val file = File("../cartridges/catalogs/home-tools.v1.json")
+    private val catalog = Json.parseToJsonElement(file.readText()).jsonObject
     private val functions = catalog.getValue("functions").jsonArray.map { it.jsonObject }
 
     @Test
-    fun `names match HomeTools and stay few`() {
-        assertEquals(HomeTools.names, functions.map { it.getValue("name").jsonPrimitive.content }.toSet())
-        assertTrue(functions.size <= 7, "a 270M model degrades beyond a handful of functions")
+    fun `checked-in catalog is the rendering of HomeTools catalog`() {
+        assertEquals(file.readText(), HomeTools.catalog.toJson(), "stale catalog: run ./gradlew :core:writeToolCatalog")
     }
 
     @Test
-    fun `argument keys match and every enum value maps`() {
-        for (f in functions) {
-            val name = f.getValue("name").jsonPrimitive.content
-            val params = f["parameters"]?.jsonObject ?: emptyMap()
-            assertEquals(HomeTools.arguments.getValue(name), params.keys, "$name arguments")
-            // remote tools (companion-executed) have no IntentMapper mapping to round-trip
-            if (name !in HomeTools.homeCommandNames) continue
-            val required = f["required"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-            // build one intent per enum value of each parameter and make sure the mapper accepts it
-            val sample = params.mapValues { (k, v) -> v.jsonObject["enum"]?.jsonArray?.first()?.jsonPrimitive?.content ?: if (k == "temperature") "21" else "50" }
-            assertIs<Mapping.Command>(IntentMapper.map(name, sample.filterKeys { it in required || it != "brightness" }), "$name with $sample")
-            for ((k, v) in params) v.jsonObject["enum"]?.jsonArray?.forEach { e ->
-                val args = sample + (k to e.jsonPrimitive.content)
-                assertIs<Mapping.Command>(IntentMapper.map(name, args), "$name $k=${e.jsonPrimitive.content}")
+    fun `names stay few and only the weather is remote`() {
+        assertEquals(HomeTools.names, functions.map { it.getValue("name").jsonPrimitive.content }.toSet())
+        assertTrue(functions.size <= 7, "a 270M model degrades beyond a handful of functions")
+        assertEquals(setOf(HomeTools.GET_WEATHER), HomeTools.names - HomeTools.homeCommandNames)
+    }
+
+    @Test
+    fun `every enum value maps to a home command`() {
+        for (f in HomeTools.catalog.functions.filterNot { it.remote }) {
+            val sample = f.parameters.associate { p -> p.name to (p.enum?.first() ?: if (p.name == HomeTools.Args.TEMPERATURE) "21" else "50") }
+            val minimal = sample.filterKeys { k -> k in f.required || k != HomeTools.Args.BRIGHTNESS }
+            assertIs<Mapping.Command>(IntentMapper.map(f.name, minimal), "${f.name} with $minimal")
+            for (p in f.parameters) p.enum?.forEach { e ->
+                assertIs<Mapping.Command>(IntentMapper.map(f.name, sample + (p.name to e)), "${f.name} ${p.name}=$e")
             }
         }
+    }
+
+    @Test
+    fun `the DSL rejects duplicates`() {
+        assertFailsWith<IllegalArgumentException> { toolCatalog("x") { function("a", "A"); function("a", "B") } }
+        assertFailsWith<IllegalArgumentException> { toolCatalog("x") { function("a", "A") { text("p", "P"); text("p", "Q") } } }
     }
 }
