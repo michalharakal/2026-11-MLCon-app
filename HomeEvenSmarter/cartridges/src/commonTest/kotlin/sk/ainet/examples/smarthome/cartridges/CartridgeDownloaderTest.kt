@@ -51,7 +51,7 @@ class CartridgeDownloaderTest {
         val events = CartridgeDownloader(store, engine).download("http://laptop:8080", entry()).toList()
         assertIs<DownloadEvent.Done>(events.last())
         assertTrue(events.filterIsInstance<DownloadEvent.Progress>().isNotEmpty())
-        val installed = assertNotNull(store.asr())
+        val installed = assertNotNull(store.byId("asr-test"))
         assertEquals("asr-test", installed.id)
         assertTrue(store.complete(installed))
         assertTrue(store.verify(installed).ok)

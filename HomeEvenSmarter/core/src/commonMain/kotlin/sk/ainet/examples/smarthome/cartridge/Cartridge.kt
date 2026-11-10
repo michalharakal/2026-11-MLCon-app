@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 
 /** The subset of a cartridge `descriptor.json` the app reads. Open vocabulary elsewhere is ignored. */
@@ -17,9 +18,36 @@ data class CartridgeDescriptor(
     val modality: String = "",
     val target: Target = Target(),
     val attributes: JsonObject? = null,
+    val io: Io? = null,
+    val model: Model? = null,
 ) {
     @Serializable
     data class Target(val hardware: String = "", val abi: String = "", val accelerator: String? = null)
+
+    /** How the model is fed: `streaming` audio at a sample rate and chunk size, or `batch` text. */
+    @Serializable
+    data class Io(val mode: String = "", val input: Port = Port(), val output: Port = Port()) {
+        @Serializable
+        data class Port(
+            val dtype: String = "",
+            @SerialName("sample_rate_hz") val sampleRateHz: Int? = null,
+            @SerialName("chunk_ms") val chunkMs: Int? = null,
+        )
+    }
+
+    @Serializable
+    data class Model(val name: String = "", val variant: String = "", val params: Long? = null, val checkpoint: String = "")
+
+    /** The runtime the pack was compiled for, e.g. `iree` `3.11.0`. */
+    data class RuntimeHint(val runtime: String, val version: String, val contract: String)
+
+    val runtimeHint: RuntimeHint?
+        get() = (attributes?.get("runtime_hint") as? JsonObject)?.let { h ->
+            fun s(k: String) = (h[k] as? JsonPrimitive)?.content ?: ""
+            RuntimeHint(s("runtime"), s("version"), s("contract"))
+        }
+
+    fun attribute(key: String): String? = (attributes?.get(key) as? JsonPrimitive)?.content
 
     val languages: List<String> get() = (attributes?.get("languages") as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
     val usesAccelerator: Boolean get() = target.accelerator != null

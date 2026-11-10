@@ -1,0 +1,77 @@
+{
+  "spec_version": "0.4",
+  "id": "asr-moonshine-v2-streaming-iree-vulkan-arm64",
+  "version": "0.1.0",
+  "family": "moonshine-v2-streaming",
+  "execution_mode": "native",
+  "model": {
+    "name": "moonshine-streaming-tiny",
+    "variant": "iree-fp32-streaming-en",
+    "params": 27000000,
+    "checkpoint": "moonshine-ai/moonshine-streaming-tiny",
+    "upstream": {
+      "source": "https://huggingface.co/moonshine-ai",
+      "license": "MIT"
+    }
+  },
+  "modality": "audio",
+  "task": "asr",
+  "io": {
+    "mode": "streaming",
+    "input": {
+      "dtype": "float32-pcm",
+      "shape": [
+        null
+      ],
+      "sample_rate_hz": 16000,
+      "chunk_ms": 80
+    },
+    "output": {
+      "dtype": "utf8-text",
+      "shape": [
+        null
+      ]
+    }
+  },
+  "attributes": {
+    "streaming": true,
+    "languages": [
+      "en"
+    ],
+    "state_model": "session",
+    "partials": "cumulative, prefix-stable within an utterance; the final re-decodes exactly",
+    "max_utterance_s": 5.12,
+    "window_frames": 64,
+    "hop_ms": 880,
+    "weights": "fp32 (graphs and parameter archive)",
+    "runtime_hint": {
+      "runtime": "iree",
+      "version": "3.11.0",
+      "contract": "moonshine-v2-streaming-v1 (frontend + encoder + adapter + masked prefill + dynamic with_past, shared parameter archive, host-side embedding rows and detokenizer table)"
+    }
+  },
+  "license": "MIT",
+  "target": {
+    "hardware": "IREE-arm64-v8a",
+    "abi": "arm64-v8a",
+    "accelerator": "Vulkan GPU (valhall4)"
+  },
+  "requirements": {
+    "needs_accelerator": true,
+    "memory_mb": 1024,
+    "os": {
+      "name": "android",
+      "min_api": 29
+    }
+  },
+  "performance": {
+    "rtf": 0.769,
+    "latency_p50_ms": 1175,
+    "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, Vulkan GPU, IREE 3.11.0, 2026-09-28; one text-to-speech utterance of 1528 ms streamed in 80 ms frames, 5 partials, exact transcript",
+    "methodology": "docs/golden-utterances.md (RealCartridgeGoldenTest spoken path)"
+  },
+  "quality": {
+    "unmeasured": true,
+    "harness": "none run at materialization — supply measurements.quality in the profile"
+  }
+}

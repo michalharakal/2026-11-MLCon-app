@@ -16,7 +16,11 @@ import sk.ainet.examples.smarthome.actions.ActionResult
 import sk.ainet.examples.smarthome.actions.HomeActions
 import sk.ainet.examples.smarthome.actions.HomeStore
 import sk.ainet.examples.smarthome.actions.Intent
+import sk.ainet.examples.smarthome.cartridge.CartridgeExpectation
 import sk.ainet.examples.smarthome.cartridge.CartridgeIndex
+import sk.ainet.examples.smarthome.cartridge.CartridgeKinds
+import sk.ainet.examples.smarthome.cartridge.HomeCartridges
+import sk.ainet.examples.smarthome.cartridges.CartridgeCheck
 import sk.ainet.examples.smarthome.cartridges.CartridgeDownloader
 import sk.ainet.examples.smarthome.cartridges.CompanionToolClient
 import sk.ainet.examples.smarthome.cartridges.DevicePreference
@@ -32,6 +36,7 @@ import sk.ainet.examples.smarthome.home.DeviceRef
 import sk.ainet.examples.smarthome.home.HomeState
 import sk.ainet.examples.smarthome.pipeline.GoldenCase
 import sk.ainet.examples.smarthome.pipeline.GoldenSet
+import sk.ainet.examples.smarthome.pipeline.GoldenVerdict
 import sk.ainet.examples.smarthome.pipeline.PipelineEvent
 import sk.ainet.examples.smarthome.pipeline.PipelineRun
 import sk.ainet.examples.smarthome.pipeline.PipelineState
@@ -50,6 +55,9 @@ data class EnginesState(
     val device: DevicePreference = DevicePreference.AUTO,
     val asrId: String? = null,
     val nluId: String? = null,
+    /** What was checked before each engine was loaded: conformance to the pipeline, signature, digests. */
+    val asrCheck: CartridgeCheck? = null,
+    val nluCheck: CartridgeCheck? = null,
 ) {
     val ready: Boolean get() = asr is EngineStatus.Ready && nlu is EngineStatus.Ready
 }
@@ -85,7 +93,8 @@ data class RunView(
 )
 
 data class GoldenResult(val case: GoldenCase, val run: PipelineRun) {
-    val passed: Boolean get() = run.calledTool == case.expectedTool && (case.expectedTool == null || case.remote || run.action?.ok == true)
+    val verdict: GoldenVerdict by lazy { GoldenSet.judge(case, run) }
+    val passed: Boolean get() = verdict.passed
 }
 
 /**
@@ -159,18 +168,41 @@ class AppViewModel(val env: AppEnvironment, private val scope: CoroutineScope, v
         _engines.update { it.copy(device = pref) }
     }
 
-    /** Loads the installed cartridges into real engines and warms them up. Long: tens of seconds for the NLU. */
+    /**
+     * Loads the cartridges the pipeline declares ([HomeCartridges]) into real engines and warms them up. Each pack is
+     * selected by conformance, then checked — signature by a trusted key, every artifact digest — and refused if any
+     * check fails. Long: seconds for the check, tens of seconds for the NLU warm-up.
+     */
     fun loadAndWarmUp() {
         if (!env.engineFactory.available) { log("no runtime on ${env.platform}; staying on fakes"); return }
-        val asrPack = env.store.asr(); val nluPack = env.store.nlu()
-        if (asrPack == null || nluPack == null) { log("cartridges missing: asr=${asrPack?.id} nlu=${nluPack?.id}"); return }
+        val preferCpu = _engines.value.device == DevicePreference.CPU
+        val asrPack = env.store.select(HomeCartridges.Asr, preferCpu); val nluPack = env.store.select(HomeCartridges.Nlu, preferCpu)
+        if (asrPack == null || nluPack == null) {
+            log("no conforming cartridges: asr=${asrPack?.id} nlu=${nluPack?.id}")
+            for ((id, problems) in env.store.rejected(HomeCartridges.Asr) + env.store.rejected(HomeCartridges.Nlu)) log("  $id: ${problems.joinToString("; ")}")
+            return
+        }
         closeEngines()
-        _engines.update { it.copy(fakes = false, asr = EngineStatus.Loading("opening", 0), nlu = EngineStatus.Loading("waiting", 0), asrId = asrPack.id, nluId = nluPack.id) }
+        _engines.update { it.copy(fakes = false, asr = EngineStatus.Loading("checking signature + digests", 0), nlu = EngineStatus.Loading("checking signature + digests", 0), asrId = asrPack.id, nluId = nluPack.id, asrCheck = null, nluCheck = null) }
         scope.launch(Dispatchers.Default) {
             val device = _engines.value.device
             val t0 = started.elapsedNow().inWholeMilliseconds
             val ticker = launch { while (true) { delay(250); val e = started.elapsedNow().inWholeMilliseconds - t0; _engines.update { s -> s.copy(asr = (s.asr as? EngineStatus.Loading)?.copy(elapsedMs = e) ?: s.asr, nlu = (s.nlu as? EngineStatus.Loading)?.copy(elapsedMs = e) ?: s.nlu) } } }
             try {
+                val asrCheck = env.store.check(asrPack, HomeCartridges.Asr, HomeCartridges.trustedKeys)
+                _engines.update { it.copy(asrCheck = asrCheck) }
+                log(checkLine(asrCheck))
+                val nluCheck = env.store.check(nluPack, HomeCartridges.Nlu, HomeCartridges.trustedKeys)
+                _engines.update { it.copy(nluCheck = nluCheck) }
+                log(checkLine(nluCheck))
+                val refused = listOf(asrCheck, nluCheck).filterNot { it.ok }
+                if (refused.isNotEmpty()) {
+                    val reason = "refused ${refused.joinToString { "${it.id}: ${it.problems.first()}" }}"
+                    _engines.update { it.copy(asr = if (asrCheck.ok) EngineStatus.Absent else EngineStatus.Failed(reason), nlu = if (nluCheck.ok) EngineStatus.Absent else EngineStatus.Failed(reason)) }
+                    log(reason)
+                    return@launch
+                }
+                _engines.update { it.copy(asr = EngineStatus.Loading("opening", started.elapsedNow().inWholeMilliseconds - t0), nlu = EngineStatus.Loading("waiting", started.elapsedNow().inWholeMilliseconds - t0)) }
                 val a = env.engineFactory.asr(asrPack, "en", device)
                 a.open() // loads the five graphs
                 asr = a
@@ -360,8 +392,8 @@ class AppViewModel(val env: AppEnvironment, private val scope: CoroutineScope, v
     fun verify(cartridge: InstalledCartridge) {
         scope.launch(Dispatchers.Default) {
             _cartridges.update { it.copy(verification = it.verification + (cartridge.id to "verifying…")) }
-            val v = env.store.verify(cartridge)
-            val text = if (v.ok) "verified ${v.checked} artifacts" else v.problems.joinToString("; ")
+            val c = env.store.check(cartridge, expectationFor(cartridge.task), HomeCartridges.trustedKeys)
+            val text = if (c.ok) "${c.signature.label} · ${c.artifacts.checked} artifacts verified · ${c.shortDigest} · ${c.checkMs} ms" else c.problems.joinToString("; ")
             _cartridges.update { it.copy(verification = it.verification + (cartridge.id to text)) }
             log("${cartridge.id}: $text")
         }
@@ -395,6 +427,15 @@ class AppViewModel(val env: AppEnvironment, private val scope: CoroutineScope, v
         val t = started.elapsedNow().inWholeMilliseconds
         _log.update { (it + "${(t / 1000).toString().padStart(4)}s  $line").takeLast(200) }
     }
+
+    private fun expectationFor(task: String): CartridgeExpectation? = when (task) {
+        CartridgeKinds.TASK_ASR -> HomeCartridges.Asr
+        CartridgeKinds.TASK_NLU -> HomeCartridges.Nlu
+        else -> null
+    }
+
+    private fun checkLine(c: CartridgeCheck): String =
+        "${c.id} ${c.version} ${c.shortDigest}: " + (if (c.ok) "${c.signature.label}, ${c.artifacts.checked} artifacts ok" else "REFUSED ${c.problems.joinToString("; ")}") + " (${c.checkMs} ms)"
 
     private fun median(values: List<Long>): Long = if (values.isEmpty()) 0 else values.sorted()[values.size / 2]
 }

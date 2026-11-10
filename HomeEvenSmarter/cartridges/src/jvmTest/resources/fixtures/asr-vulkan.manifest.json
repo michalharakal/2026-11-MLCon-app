@@ -1,0 +1,173 @@
+{
+  "schema_version": "2",
+  "kind": "cartridge",
+  "id": "asr-moonshine-v2-streaming-iree-vulkan-arm64",
+  "version": "0.1.0",
+  "effective_license": "MIT",
+  "descriptor_digest": "sha256:a84fa57bd06c274769f92e955a1084ad3ca7ed6da615dfa8ef5bd67f07db112b",
+  "digest_alg": "sha256",
+  "artifacts": [
+    {
+      "role": "descriptor",
+      "path": "descriptor.json",
+      "digest": "sha256:66b03e081d3bbb12ea5a391ff01cab1b37e729a7923763c329aa6a657ebd1ceb",
+      "size": 2150,
+      "license": "MIT"
+    },
+    {
+      "role": "runtime",
+      "path": "artifacts/runtime/libskainet_moonshine_stream.so",
+      "digest": "sha256:57716bc0c98c83e38e036b967fbe21cfbc66a60647c5556a4d2d955f512e9083",
+      "size": 854400,
+      "license": "MIT"
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/frontend.vmfb",
+      "digest": "sha256:c60b5ff168dcb63b01c92a044834d791d6d0fa36ea9c2eb6f3742f19c0487581",
+      "size": 8340734,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/frontend_step.vmfb",
+      "digest": "sha256:f04ae89823d1021cab404ce83e3c791fa377a990d4570f2eb4a3182fb69c8bbc",
+      "size": 8343150,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/encoder.vmfb",
+      "digest": "sha256:1682fd7b62fdc8a1f83c2d2b1f4bcd39b5e90c86e42e93d57c7a8265fb90bca1",
+      "size": 29659593,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/adapter.vmfb",
+      "digest": "sha256:614a92cb629bba51d9a81e17c18bd8682e0c1996158c10b4d8e61324c013fe35",
+      "size": 5251589,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/prefill.vmfb",
+      "digest": "sha256:720cdd729ac2bbc903bbbaba01e4b2aa11173eb1f2a00cdf9514c30264ac5f9b",
+      "size": 5137109,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "model",
+      "path": "artifacts/model/en/step.vmfb",
+      "digest": "sha256:2c4f7388c71190381deaa8e7ac5a8fff937418ab7adf686dc24e0c70e3d8f6ab",
+      "size": 225231,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "weights",
+      "path": "artifacts/weights/en/dec_embed.bin",
+      "digest": "sha256:80aee0991e042f5beac223b6c42899c551a7b401cb013c60ee7f7c3537f8747b",
+      "size": 41943040,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "weights",
+      "path": "artifacts/weights/en/params.irpa",
+      "digest": "sha256:4aca173c4e4b25273160e95ddb6206734ad755a663fb520101f97cf91a6f8cad",
+      "size": 86188032,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    },
+    {
+      "role": "tokenizer",
+      "path": "artifacts/tokenizer/en/vocab.bin",
+      "digest": "sha256:88f516eae9b847685c21e625d6ef0fb84dff880ced148dd29044383b3c40228a",
+      "size": 274923,
+      "license": "MIT",
+      "derived_from": {
+        "source": "hf://moonshine-ai/moonshine-streaming-tiny@f8e9dfd8c562c257c151a907b7b7f2fe8ff8511a",
+        "license": "MIT"
+      }
+    }
+  ],
+  "provenance": {
+    "producer": "sk.ainet.cartridge.blueprint@dev",
+    "built_at": "2026-11-09T13:43:46Z",
+    "inputs": [
+      {
+        "name": "weights-en/config.json",
+        "digest": "sha256:166861753adaf928ae99b3709bfb1da47cb76319be58f37c6f9b7a539ce371f0"
+      },
+      {
+        "name": "weights-en/model.safetensors",
+        "digest": "sha256:0ab3443dabd95a4afb35f0a26155428c03b7c3c450fa6923ffdac4510ba3d040"
+      },
+      {
+        "name": "weights-en/tokenizer.json",
+        "digest": "sha256:28bbc54a47dfa33673affa26010f23ac452685b18c76e81451d9b3ea25a54d54"
+      }
+    ],
+    "blueprint": {
+      "id": "asr-moonshine-v2-streaming-iree",
+      "version": "0.1.0",
+      "digest": "sha256:c8e824ab75b1f53d6fb4a3e1ca39eb7708fbce924f5cfdb97c85bfc506590f60"
+    },
+    "materialization": {
+      "profile_digest": "sha256:a2fa916d5269f9be5953431dd768e8fc43f97709a150136bc021b773ed461be7",
+      "target": "vulkan-arm64",
+      "flavors": [
+        "en"
+      ],
+      "toolchain": {
+        "skainet": "0.63.0",
+        "skainet-transformers": "0.64.2",
+        "iree-tools": "3.11.0",
+        "iree-tools-torq": "2.3.0",
+        "stablehlo-tosa": "2.3.0",
+        "iree-android-runtime": "0.64.2",
+        "blueprint-plugin": "0.1.0"
+      },
+      "materializer": "sk.ainet.cartridge.blueprint@dev"
+    }
+  },
+  "signatures": [
+    {
+      "keyid": "homeevensmarter-dev",
+      "alg": "ed25519",
+      "signer": "Michal Harakal",
+      "signature": "Lpwe4fejNkHcBQ/3GYg4epb94JCj3dAr03YuhLMSSSpecg1Qmsl8R4NZWWlEuwfCkPOTZinkRJVofb/7dVH4Dw==",
+      "signed_at": "2026-11-09T13:43:46Z"
+    }
+  ]
+}
