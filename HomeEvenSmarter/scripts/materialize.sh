@@ -23,6 +23,9 @@ if ! docker image inspect skainet/iree-compiler:3.11.0 >/dev/null 2>&1; then
   (cd "$IREE_TOOLS_DIR" && make compiler)
 fi
 
+# The tool catalog is code (HomeTools.catalog): render it before the NLU pack bakes it into its prompt.
+case "$WHAT" in all|nlu) (cd "$HERE" && ./gradlew -q :core:writeToolCatalog);; esac
+
 case "$TARGETS" in both) TARGETS="vulkan-arm64 cpu-arm64";; vulkan-arm64|cpu-arm64) ;; *) echo "unknown target set $TARGETS"; exit 1;; esac
 case "$WHAT" in all) WHAT="asr nlu";; asr|nlu) ;; *) echo "unknown selection $WHAT"; exit 1;; esac
 

@@ -31,3 +31,20 @@ kotlin {
         }
     }
 }
+
+// The tool catalog is code (HomeTools.catalog); this renders the JSON the NLU cartridge is materialized with.
+// scripts/materialize.sh runs it first, so a pack is never built from a stale catalog.
+tasks.register<JavaExec>("writeToolCatalog") {
+    group = "cartridges"
+    description = "Generate cartridges/catalogs/home-tools.v1.json from HomeTools.catalog"
+    val main = kotlin.jvm().compilations.getByName("main")
+    dependsOn(main.compileTaskProvider)
+    classpath(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("sk.ainet.examples.smarthome.tools.WriteToolCatalogKt")
+    args(rootProject.file("cartridges/catalogs/home-tools.v1.json").absolutePath)
+}
+
+// CatalogContractTest reads the generated catalog: without this, an edited JSON leaves jvmTest UP-TO-DATE.
+tasks.named<Test>("jvmTest") {
+    inputs.file(rootProject.file("cartridges/catalogs/home-tools.v1.json")).withPropertyName("toolCatalog")
+}
