@@ -12,6 +12,9 @@ application { mainClass = "sk.ainet.examples.smarthome.distill.DistillKt" }
 
 dependencies {
     implementation(project(":core"))
+    // the on-device prompt, rendered by the same code the NLU cartridge uses: the teacher sees what the phone sees
+    implementation("sk.ainet.cartridge:nlu-functiongemma-270m-iree:0.1.0")
+    implementation("sk.ainet.transformers:skainet-transformers-agent:0.64.2") // ToolDefinition in the prompt API
     implementation(libs.skainet.lang.core)
     implementation(libs.skainet.compile.dag)
     implementation(libs.skainet.compile.hlo)
