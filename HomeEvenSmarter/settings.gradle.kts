@@ -24,6 +24,13 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        // -PskainetVersion=<x> swaps in a SKaiNET build published to ~/.m2 (e.g. a branch under review); never the default.
+        if (providers.gradleProperty("skainetVersion").isPresent) mavenLocal()
+    }
+    versionCatalogs {
+        create("libs") { // the catalog gradle/libs.versions.toml already imports; this only overrides one version
+            providers.gradleProperty("skainetVersion").orNull?.let { version("skainet", it) }
+        }
     }
 }
 

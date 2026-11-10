@@ -10,6 +10,12 @@ kotlin { jvmToolchain(21) }
 
 application { mainClass = "sk.ainet.examples.smarthome.distill.DistillKt" }
 
+// Full-batch training keeps one tape of activations per step; the Transformer student needs a few GB of heap.
+tasks.named<JavaExec>("run") {
+    maxHeapSize = providers.gradleProperty("distillHeap").getOrElse("4g")
+    jvmArgs("--add-modules", "jdk.incubator.vector") // lets the CPU backend use its SIMD kernels
+}
+
 dependencies {
     implementation(project(":core"))
     // the on-device prompt, rendered by the same code the NLU cartridge uses: the teacher sees what the phone sees

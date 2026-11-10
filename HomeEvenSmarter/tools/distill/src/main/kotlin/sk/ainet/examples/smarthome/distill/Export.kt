@@ -23,9 +23,9 @@ import sk.ainet.tape.Execution
 object Export {
     const val FUNCTION = "main"
 
-    fun stableHlo(trained: Module<FP32, Float>): String {
+    fun stableHlo(student: Student, trained: Module<FP32, Float>): String {
         val ctx = DefaultGraphExecutionContext.tape(baseOps = VoidTensorOps())
-        val traced = Router.model(ctx)
+        val traced = student.model(ctx)
         val src = trained.trainableParameters()
         val dst = traced.trainableParameters()
         check(src.map { it.name } == dst.map { it.name }) { "trained and traced parameters differ: ${src.map { it.name }} vs ${dst.map { it.name }}" }
@@ -40,7 +40,7 @@ object Export {
             @Suppress("UNCHECKED_CAST")
             (d.moduleParameter as sk.ainet.lang.nn.topology.ModuleParameter<FP32, Float>).value = ctx.fromData(DenseFloatArrayTensorData<FP32>(shape, floats) as TensorData<FP32, Float>, FP32::class)
         }
-        val graph = trace(ctx) { traced.forward(void(Shape(1, RouterFeatures.DIM)), it) }
+        val graph = trace(ctx) { traced.forward(void(student.inputShape), it) }
         val mlir = StableHloConverterFactory.createExtended().convert(graph, FUNCTION).content
         check("stablehlo.constant" in mlir) { "the trained weights did not fold into constants" }
         check("tensor<1x${Router.classes}xf32>" in mlir) { "the exported function does not return tensor<1x${Router.classes}xf32>" }
