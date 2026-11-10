@@ -1,0 +1,91 @@
+{
+  "spec_version": "0.4",
+  "id": "nlu-functiongemma-270m-iree-vulkan-arm64",
+  "version": "0.2.0",
+  "family": "functiongemma-270m-tool-calling",
+  "execution_mode": "native",
+  "model": {
+    "name": "functiongemma-270m-it",
+    "variant": "iree-bf16-kv-chunk32",
+    "params": 268000000,
+    "checkpoint": "google/functiongemma-270m-it",
+    "upstream": {
+      "source": "https://huggingface.co/unsloth/functiongemma-270m-it-GGUF",
+      "license": "Gemma Terms of Use (https://ai.google.dev/gemma/terms) — not an OSI license; whoever ships a cartridge built from these weights accepts the terms and the prohibited-use policy."
+    }
+  },
+  "modality": "text",
+  "task": "nlu",
+  "io": {
+    "mode": "batch",
+    "input": {
+      "dtype": "utf8-text",
+      "shape": [
+        null
+      ]
+    },
+    "output": {
+      "dtype": "utf8-json",
+      "shape": [
+        null
+      ],
+      "output_schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "arguments"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "attributes": {
+    "supports_tool_calling": true,
+    "tool_call_format": "functiongemma-compact-v1",
+    "thinking": false,
+    "context_window_tokens": 1024,
+    "weights": "bf16 parameter archives (3 x 536 MB), f32 compute; dequantized from the Q8_0 GGUF at export",
+    "runtime_hint": {
+      "runtime": "iree",
+      "version": "3.11.0",
+      "contract": "functiongemma-kv-v1 (prefill_at + prefill_with_past + with_past, host-gathered embeddings)",
+      "chunk": 32,
+      "sliding_window": 512,
+      "library": "libskainet_iree_kv.so"
+    }
+  },
+  "requirements": {
+    "needs_accelerator": true,
+    "memory_mb": 2048,
+    "os": {
+      "name": "android",
+      "min_api": 29
+    }
+  },
+  "license": "MIT AND LicenseRef-Gemma-Terms-of-Use",
+  "target": {
+    "hardware": "IREE-arm64-v8a",
+    "abi": "arm64-v8a",
+    "accelerator": "Vulkan GPU (valhall4)"
+  },
+  "performance": {
+    "latency_p50_ms": 2855,
+    "latency_p95_ms": 3329,
+    "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, Vulkan GPU, IREE 3.11.0, 2026-09-28; typed golden set of 12 utterances against the packed catalog, 10/12 correct; warm-up 30.2 s, RSS 1915 MB",
+    "methodology": "docs/golden-utterances.md (RealCartridgeGoldenTest, per-utterance tokenize + KV restore + one chunk call + greedy decode)"
+  },
+  "quality": {
+    "unmeasured": true,
+    "harness": "none run at materialization — supply measurements.quality in the profile"
+  }
+}

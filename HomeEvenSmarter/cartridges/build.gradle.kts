@@ -33,7 +33,12 @@ kotlin {
             implementation(libs.kotlinx.coroutinesTest)
             implementation(libs.ktor.clientMock)
         }
+        jvmMain.dependencies {
+            implementation(libs.bouncycastle.prov)    // Ed25519 manifest signatures
+        }
         androidMain.dependencies {
+            // Ed25519 manifest signatures: the platform provider has it only from API 33, minSdk is 29.
+            implementation(libs.bouncycastle.prov)
             // Resolved to the sibling SKaiNET-cartridge-blueprints checkout by the included build (settings.gradle.kts).
             implementation("sk.ainet.cartridge:asr-moonshine-v2-streaming-iree:0.1.0")
             implementation("sk.ainet.cartridge:nlu-functiongemma-270m-iree:0.1.0")

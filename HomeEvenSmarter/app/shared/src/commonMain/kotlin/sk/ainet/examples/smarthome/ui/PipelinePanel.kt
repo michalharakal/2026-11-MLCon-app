@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import sk.ainet.examples.smarthome.AppViewModel
 import sk.ainet.examples.smarthome.RunView
 import sk.ainet.examples.smarthome.StageStatus
+import sk.ainet.examples.smarthome.cartridges.CartridgeCheck
 import sk.ainet.examples.smarthome.engine.NluOutcome
 import sk.ainet.examples.smarthome.pipeline.PipelineState
 import sk.ainet.examples.smarthome.pipeline.Stage
@@ -48,10 +49,11 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
     val state by vm.pipelineState.collectAsState()
     val engines by vm.engines.collectAsState()
     val log by vm.log.collectAsState()
+    val stages by vm.panelStages.collectAsState()
     Column(modifier) {
         Text("Pipeline", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        StageChips(run)
+        StageChips(run, stages)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Section("Speech", Palette.accent) {
@@ -62,6 +64,7 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
                     color = if (run.transcript.isNotEmpty()) Palette.text else Palette.textDim,
                 )
                 if (run.asrMs > 0) Meta("audio ${run.audioMs} ms · asr ${run.asrMs} ms · ${engines.asrId ?: ""}")
+                engines.asrCheck?.let { CartridgeIdentity(it) }
             }
             Section("Understanding", Palette.accent2) {
                 when (val o = run.outcome) {
@@ -76,6 +79,7 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
                 }
                 if (run.correction.isNotEmpty()) Text(run.correction, color = Palette.warn, fontSize = 13.sp)
                 if (run.nluMs > 0) Meta("nlu ${run.nluMs} ms · ${engines.nluId ?: ""}")
+                engines.nluCheck?.let { CartridgeIdentity(it) }
             }
             Section("Action", Palette.ok) {
                 Text(run.actionMessage.ifEmpty { "—" }, color = when (run.actionOk) { true -> Palette.ok; false -> Palette.error; null -> Palette.textDim }, fontSize = 18.sp)
@@ -98,8 +102,10 @@ fun PipelinePanel(vm: AppViewModel, modifier: Modifier = Modifier) {
 fun PipelineStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
     val run by vm.run.collectAsState()
     val state by vm.pipelineState.collectAsState()
+    val stages by vm.panelStages.collectAsState()
+    val engines by vm.engines.collectAsState()
     Column(modifier.clip(RoundedCornerShape(12.dp)).background(Palette.surface).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        StageChips(run)
+        StageChips(run, stages)
         val text = if (run.transcript.isNotEmpty()) run.transcript else run.partial
         Text(
             text.ifEmpty { if (state == PipelineState.LISTENING) "listening…" else "hold the button and speak" },
@@ -115,14 +121,21 @@ fun PipelineStrip(vm: AppViewModel, modifier: Modifier = Modifier) {
         if (outcome.isNotEmpty()) Text(outcome, fontSize = 13.sp, fontFamily = FontFamily.Monospace, color = Palette.accent2, maxLines = 2)
         if (run.correction.isNotEmpty()) Text(run.correction, fontSize = 12.sp, color = Palette.warn, maxLines = 2)
         if (run.actionMessage.isNotEmpty()) Text(run.actionMessage + (if (run.totalMs > 0) "  ·  ${run.totalMs} ms" else ""), fontSize = 14.sp, color = if (run.actionOk == false) Palette.error else Palette.ok, maxLines = 2)
+        for (check in listOfNotNull(engines.asrCheck, engines.nluCheck)) {
+            Text(
+                "${if (check.ok) "✓" else "✗"} ${check.id.substringBefore('-').uppercase()} ${check.version} · ${check.shortDigest.take(8)} · " +
+                    if (check.ok) "signed" else check.problems.firstOrNull() ?: "refused",
+                fontSize = 11.sp, fontFamily = FontFamily.Monospace, maxLines = 1, color = if (check.ok) Palette.textDim else Palette.error,
+            )
+        }
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TalkButton(vm) }
     }
 }
 
 @Composable
-private fun StageChips(run: RunView) {
+private fun StageChips(run: RunView, stages: List<Stage>) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (stage in Stage.entries) {
+        for (stage in stages) {
             val status = run.stages[stage] ?: StageStatus.PENDING
             val target = when (status) {
                 StageStatus.PENDING -> Palette.surfaceHigh
@@ -134,7 +147,7 @@ private fun StageChips(run: RunView) {
             val color by animateColorAsState(target)
             val label = when (stage) { Stage.LISTENING -> "mic"; Stage.ASR -> "ASR"; Stage.NLU -> "NLU"; Stage.ACTION -> "act"; Stage.CLOUD -> "cloud" }
             Box(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(color).padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
-                Text(if (stage == Stage.CLOUD) "$label (next talk)" else label, fontSize = 12.sp, color = if (status == StageStatus.PENDING) Palette.textDim else Palette.background, fontWeight = FontWeight.SemiBold)
+                Text(label, fontSize = 12.sp, color = if (status == StageStatus.PENDING) Palette.textDim else Palette.background, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -147,6 +160,17 @@ private fun Section(title: String, color: Color, content: @Composable () -> Unit
         Spacer(Modifier.height(6.dp))
         content()
     }
+}
+
+/** Which pack runs this stage and what was checked before it was loaded. */
+@Composable
+private fun CartridgeIdentity(c: CartridgeCheck) {
+    Meta("${c.id} ${c.version} · sha256 ${c.shortDigest}", color = Palette.textDim)
+    Meta(
+        if (c.ok) "✓ ${c.signature.label} · ${c.artifacts.checked} artifacts verified in ${c.checkMs} ms"
+        else "✗ refused: ${c.problems.joinToString("; ").take(160)}",
+        color = if (c.ok) Palette.ok else Palette.error,
+    )
 }
 
 @Composable
