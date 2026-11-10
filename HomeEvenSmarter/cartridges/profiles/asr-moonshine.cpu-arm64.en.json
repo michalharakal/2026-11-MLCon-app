@@ -14,9 +14,9 @@
   },
   "measurements": {
     "performance": {
-      "rtf": 1.192,
-      "latency_p50_ms": 1822,
-      "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, CPU (local-task), IREE 3.11.0, 2026-09-28; one text-to-speech utterance of 1528 ms streamed in 80 ms frames, 5 partials, exact transcript",
+      "rtf": 1.004,
+      "latency_p50_ms": 1534,
+      "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, SKaiNET 0.63.0 / transformers 0.64.2, CPU (local-task), IREE 3.11.0, 2026-11-10; one text-to-speech utterance of 1528 ms streamed in 80 ms frames, 3 partials, exact transcript",
       "methodology": "docs/golden-utterances.md (RealCartridgeGoldenTest spoken path)"
     }
   },

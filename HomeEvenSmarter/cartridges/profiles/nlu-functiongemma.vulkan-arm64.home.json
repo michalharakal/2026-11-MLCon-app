@@ -26,9 +26,9 @@
   },
   "measurements": {
     "performance": {
-      "latency_p50_ms": 2855,
-      "latency_p95_ms": 3329,
-      "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, Vulkan GPU, IREE 3.11.0, 2026-09-28; typed golden set of 12 utterances against the packed catalog, 10/12 correct; warm-up 30.2 s, RSS 1915 MB",
+      "latency_p50_ms": 2216,
+      "latency_p95_ms": 3654,
+      "measured_on": "Google Pixel 8a (Tensor G3, Mali GPU), Android 17, SKaiNET 0.63.0 / transformers 0.64.2, Vulkan GPU, IREE 3.11.0, 2026-11-10; typed golden set of 12 utterances against the packed catalog, 12/12 correct; warm-up 10.5 s, RSS 1928 MB",
       "methodology": "docs/golden-utterances.md (RealCartridgeGoldenTest, per-utterance tokenize + KV restore + one chunk call + greedy decode)"
     }
   },
