@@ -1,0 +1,26 @@
+# XcodeGen spec: `brew install xcodegen && cd iosApp && xcodegen` writes iosApp.xcodeproj.
+# The pre-build script has Gradle build Shared.framework from :shared for the SDK and architecture Xcode asks for.
+name: iosApp
+options:
+  bundleIdPrefix: sk.ainet.examples
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources: [iosApp]
+    info:
+      path: iosApp/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: sk.ainet.examples.moonshine
+        FRAMEWORK_SEARCH_PATHS: $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: $(inherited) -framework Shared
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    preBuildScripts:
+      - name: Build Shared.framework
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode
