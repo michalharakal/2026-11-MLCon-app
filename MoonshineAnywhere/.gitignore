@@ -1,0 +1,11 @@
+*.iml
+.kotlin
+.gradle
+**/build/
+local.properties
+.idea
+.DS_Store
+xcuserdata
+*.xcodeproj
+# Built artifacts: the desktop runtime library and every materialized pack stay out of the repository.
+native/out/

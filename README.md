@@ -36,6 +36,7 @@ Built from the [SKaiNET cartridge blueprints](https://github.com/SKaiNET-develop
 | | |
 |---|---|
 | [**HomeEvenSmarter**](HomeEvenSmarter/) | The demo app: Kotlin Multiplatform, Compose, on-device ASR + NLU via SKaiNET/IREE, Ktor companion server |
+| [**MoonshineAnywhere**](MoonshineAnywhere/) | The same Moonshine cartridge on its own, in one Kotlin Multiplatform app for Android, desktop JVM and iOS: CPU and Vulkan GPU, no ONNX Runtime |
 | [Architecture (C4)](HomeEvenSmarter/docs/c4/) | Context → containers → components, as Mermaid diagrams |
 | [Demo flow diagram](HomeEvenSmarter/docs/demo-architecture.svg) | The one-slide version: building blocks, local/cloud border, numbered data flow |
 | [Banner source](assets/banner/mlcon-berlin-2026.html) | Rendered with headless Chromium at 1280×640 |
